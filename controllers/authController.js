@@ -8,13 +8,13 @@ const  userRegister =async (req,res)=>{
     
 
     try{
-        const {username,email,password}=req.body;
+        const {username,password}=req.body;
         
-        if (!username || !email || !password) {
+        if (!username ||  !password) {
         return res.status(400).json({ message: 'All fields are required' });
         }
       
-        const existingUser= await User.findOne({$or: [{ username }, { email }]})
+        const existingUser= await User.findOne({$or: [{ username }]})
 
         if(existingUser){
             return res.status(400).json({message:'User already exist'})
@@ -24,7 +24,7 @@ const  userRegister =async (req,res)=>{
 
         const newUser = new User({
             username,
-            email,
+            
             password:hashedPassword,
         })
 
@@ -73,7 +73,7 @@ const loginUser = async (req, res) => {
 
     await user.save();
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId:user._id,role:user.role}, process.env.JWT_SECRET, {
       expiresIn: '1d'
     });
 
@@ -81,7 +81,8 @@ const loginUser = async (req, res) => {
       message: 'Login successful',
       user: {
         id: user._id,
-        username: user.username
+        username: user.username,
+        role: user.role
       },
       token
     });
@@ -105,12 +106,15 @@ const adminLogin = async(req,res)=>{
         if(!user){
             return res.status(404).json({message:'Admin not found'})
         }
+        console.log("User role from DB:", user.role);
+
 
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied: Not an admin' });
         }
 
         const isPasswordValid = await bcrypt.compare(password,user.password);
+        console.log("Password valid:", isPasswordValid);
 
         if(!isPasswordValid){
             return res.status(401).json({message:'Invalid credentials'})
@@ -118,7 +122,11 @@ const adminLogin = async(req,res)=>{
 
         const token = jwt.sign({userId:user._id,role:user.role},process.env.JWT_SECRET,{expiresIn:'1d'});
 
-        res.status(200).json({message:'Login successful',user:{id:user._id,username:user.username,role:user.role},token});
+        res.status(200).json({
+          message: 'Login successful',
+          admin: { id: user._id, username: user.username, role: user.role },
+          token
+        });
 
 
     }catch(err){

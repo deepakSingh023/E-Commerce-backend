@@ -1,6 +1,55 @@
 const product = require('../models/product');
 const User = require('../models/user');
 const Order = require('../models/orders');
+const favourite = require('../models/favourite');
+
+const createFavorite=async (req,res)=>{
+ const { productId } = req.body;
+  const userId = req.user._id;
+
+  try {
+    const existingFavorite = await Favorite.findOne({ user: userId, product: productId });
+
+    if (existingFavorite) {
+      return res.status(200).json({ message: 'Product already in favorites' });
+    }
+
+    const favorite = await Favorite.create({ user: userId, product: productId });
+    res.status(201).json({ message: 'Product added to favorites', favorite });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+const removeFavourite= async (req, res) => {
+  const { productId } = req.body;
+  const userId = req.user._id;
+
+  try {
+    const favorite = await favourite.findOneAndDelete({ user: userId, product: productId });
+
+    if (!favorite) {
+      return res.status(404).json({ message: 'Product not found in favorites' });
+    }
+
+    res.status(200).json({ message: 'Product removed from favorites' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+}
+
+
+const getAllFavourite= async (req, res) => {
+   const userId = req.user._id;
+
+  try {
+    const favorites = await Favorite.find({ user: userId }).populate('product');
+    res.json(favorites);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+  };
+
 
 
 const getAllProducts = async (req, res) => {
@@ -21,40 +70,6 @@ const getProductById = async (req, res) => {
     }
 };
 
-const addToCart = async (req, res) => {
-  try {
-    const { productId, quantity } = req.body; 
-
-    if (!productId || !quantity) {
-      return res.status(400).json({ message: 'Product ID and quantity are required' });
-    }
-
-    const user = await User.findById(req.user.userId);
-    const existing = user.cart.find(
-      item => item.productId.toString() === productId
-    );
-
-    if (existing) {
-      existing.quantity += quantity;
-    } else {
-      user.cart.push({ productId, quantity });
-    }
-
-    await user.save();
-
-    res.status(200).json({ message: 'Product added to cart', cart: user.cart });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-const getCartProducts = async (req, res) => {
-    try {
-        const user = await User.findById(req.user.userId);
-        res.status(200).json({ cart: user.cart });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
 
 const placeOrder = async (req, res) => {
   try {
@@ -111,9 +126,11 @@ const placeOrder = async (req, res) => {
 module.exports = {
     getAllProducts,
     getProductById,
-    addToCart,
-    getCartProducts,
-    placeOrder
+    
+    placeOrder,
+    createFavorite,
+    getAllFavourite,
+    removeFavourite
 };
 
 
