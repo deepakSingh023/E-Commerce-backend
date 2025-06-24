@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getAllProducts, getProductById, addToCart, getCartProducts, placeOrder , createFavorite, getAllFavourite, removeFavourite, removeFavourite } = require('../controllers/productController');
+const { getAllProducts, getProductById, placeOrder , createFavorite, getAllFavourite, removeFavourite } = require('../controllers/productController');
+
 const auth = require('../middlewares/auth');
 
 router.get('/getAllProducts',auth, getAllProducts);
