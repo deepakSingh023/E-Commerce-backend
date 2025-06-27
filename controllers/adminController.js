@@ -1,49 +1,79 @@
-const User = require('../models/user');
-const Product = require('../models/product');
+const Product = require('../models/product')
 
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price } = req.body;
+    let {
+      name,
+      description,
+      price,
+      category,
+      stock,
+      inStock,
+      featuredAt,
+      features,
+      size,
+    } = req.body;
 
-    // Check required fields
-    if (!name || !description || !price || !req.file) {
-      return res.status(400).json({ message: 'All fields are required including image' });
+    if (!name || !description || !price || !category || stock === undefined || !req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'All fields are required including images' });
     }
 
-    // Check user role
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied: Not an admin' });
-    }
+    // Force type conversions
+    price = Number(price);
+    stock = Number(stock);
+    inStock = inStock === 'true';
+    featuredAt = featuredAt === 'true';
 
-    // Check for duplicate product name
-    const alreadyExist = await Product.findOne({
-      name: { $regex: `^${name}$`, $options: 'i' },
-    });
+    // Ensure arrays
+    if (typeof features === 'string') features = [features];
+    if (typeof size === 'string') size = [size];
+
+    // Check for duplicate
+    const alreadyExist = await Product.findOne({ name: { $regex: `^${name}$`, $options: 'i' } });
     if (alreadyExist) {
-      return res.status(400).json({ message: 'Product with this name already exists. Please choose a different name.' });
+      return res.status(400).json({ message: 'Product with this name already exists' });
     }
 
-    // Store image URL from Cloudinary
-    const imageUrl = req.file.path; // Cloudinary auto-stores `path` as the public image URL
-    const publicId = req.file.filename; // Optional: for future delete/reference
+    const images = req.files.map(file => ({
+      url: file.path,
+      publicId: file.filename,
+    }));
 
     const product = new Product({
       name,
       description,
       price,
-      image: imageUrl,
-      cloudinaryId: publicId, // Optional: store Cloudinary image ID
+      category,
+      stock,
+      inStock,
+      featuredAt,
+      features,
+      size,
+      images,
     });
 
     await product.save();
 
     res.status(201).json({ message: 'Product created successfully', product });
   } catch (err) {
-    console.error('Create Product Error:', err);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Create Product Error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-module.exports = {
-  createProduct,
+
+const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedProduct = await Product.findByIdAndDelete(id);
+    if (!deletedProduct) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    res.status(200).json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    console.error("Delete Product Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+
+module.exports = { createProduct, deleteProduct };
