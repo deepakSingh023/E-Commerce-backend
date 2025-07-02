@@ -35,9 +35,10 @@ const createProduct = async (req, res) => {
     }
 
     const images = req.files.map(file => ({
-      url: file.path,
-      publicId: file.filename,
-    }));
+  url: file.path,         // ✅ This is full Cloudinary URL
+  publicId: file.filename // ✅ This is Cloudinary's file ID
+}));
+
 
     const product = new Product({
       name,
@@ -93,12 +94,11 @@ const updateProduct = async (req, res) => {
         : [JSON.parse(req.body.existingImages)];
     }
 
-    // Get new uploaded files
-    const imageFiles = req.files || [];
-    const newImages = imageFiles.map(file => ({
-      url: `/uploads/${file.filename}`,
-      publicId: file.filename
-    }));
+
+    const images = req.files.map(file => ({
+  url: file.path,         // ✅ This is full Cloudinary URL
+  publicId: file.filename // ✅ This is Cloudinary's file ID
+}));
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
@@ -112,7 +112,7 @@ const updateProduct = async (req, res) => {
         featuredAt,
         size: Array.isArray(size) ? size : [size],
         features: Array.isArray(features) ? features : [features],
-        images: [...existingImages, ...newImages]
+        images: [...existingImages, ...images]
       },
       { new: true }
     );
