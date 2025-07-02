@@ -76,4 +76,53 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-module.exports = { createProduct, deleteProduct };
+const updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const {
+    name, price, description, category,
+    stock, inStock, featuredAt, size, features
+  } = req.body;
+
+  let existingImages = [];
+
+  try {
+    // Parse existingImages
+    if (req.body.existingImages) {
+      existingImages = Array.isArray(req.body.existingImages)
+        ? req.body.existingImages.map(img => JSON.parse(img))
+        : [JSON.parse(req.body.existingImages)];
+    }
+
+    // Get new uploaded files
+    const imageFiles = req.files || [];
+    const newImages = imageFiles.map(file => ({
+      url: `/uploads/${file.filename}`,
+      publicId: file.filename
+    }));
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+        name,
+        price,
+        description,
+        category,
+        stock,
+        inStock,
+        featuredAt,
+        size: Array.isArray(size) ? size : [size],
+        features: Array.isArray(features) ? features : [features],
+        images: [...existingImages, ...newImages]
+      },
+      { new: true }
+    );
+
+    res.status(200).json(updatedProduct);
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).json({ message: "Update failed", error: err.message });
+  }
+};
+
+
+module.exports = { createProduct, deleteProduct, updateProduct };
