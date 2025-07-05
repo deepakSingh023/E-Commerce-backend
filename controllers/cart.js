@@ -6,7 +6,8 @@ const Cart = require('../models/cart');
 
 const getCartItems= async(req,res)=>{
     try{
-        const userId = req.user._id;
+        const user = req.user
+         const userId = new mongoose.Types.ObjectId(req.user._id);
         const cartItems = await Cart.find({user:userId}).populate('product');
         res.json(cartItems);
     }catch(error){

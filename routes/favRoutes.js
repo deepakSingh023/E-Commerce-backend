@@ -6,6 +6,6 @@ const { createFavorite, getAllFavourite, removeFavourite } = require('../control
 
 router.post('/createFavorite',  auth, createFavorite);
 router.get('/getAllFavourite',  auth, getAllFavourite);
-router.delete('/removeFavourite',  auth, removeFavourite);
+router.delete('/removeFavorite',  auth, removeFavourite);
 
 module.exports = router;

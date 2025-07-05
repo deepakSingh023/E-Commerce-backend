@@ -5,6 +5,6 @@ const { getAllProducts, getProductsPage } = require('../controllers/productContr
 const auth = require('../middlewares/auth');
 
 router.get('/getAllProducts',auth, getAllProducts);
-router.get('/getProductsPage',auth,  getProductsPage);
+router.get('/getProductsPage',  getProductsPage);
 
 module.exports = router;
