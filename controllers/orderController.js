@@ -1,5 +1,5 @@
 const Order = require('../models/orders');
-
+const Product = require('../models/product');
 
 const getAllOrders = async (req, res) => {
     try {
@@ -47,8 +47,6 @@ const placeOrder = async (req, res) => {
       return res.status(400).json({ message: 'Shipping address and payment method are required' });
     }
 
-    // 2. Calculate total price
-    let totalPrice = 0;
 
     for (const item of orderItems) {
       const product = await Product.findById(item.product);

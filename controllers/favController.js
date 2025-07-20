@@ -62,7 +62,7 @@ const getAllFavourite= async (req, res) => {
   try {
     const favorites = await Favorite.find({ user: user._id }).populate('product');
     res.json(favorites);
-    console.log("🟢 Favourites fetched successfully:", favorites);
+    
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }

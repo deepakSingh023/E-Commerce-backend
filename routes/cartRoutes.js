@@ -7,7 +7,7 @@ const auth = require('../middlewares/auth');
 
 router.get('/getCartItems',auth, cart.getCartItems);
 router.post('/addItemCart',auth, cart.addItemCart);
-router.post('/removeItemCart', auth, cart.removeItemCart);
+router.delete('/removeItemCart', auth, cart.removeItemCart);
 router.post('/updateQuantity', auth,cart.updateQuantity);
 
 module.exports = router;

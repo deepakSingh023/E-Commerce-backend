@@ -8,14 +8,21 @@ const getCartItems = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const cartItems = await Cart.find({ userId }).populate('product');
+    const cart = await Cart.findOne({ user: userId }).populate('items.product');
 
-    res.json(cartItems);
+    if (!cart) {
+      return res.json([]); // return empty array if user has no cart yet
+    }
+
+    console.log("Cart items:", cart.items);
+
+    res.json(cart.items); // send back only the array of items
   } catch (error) {
     console.error("Get cart error:", error);
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
 
 const addItemCart = async (req, res) => {
