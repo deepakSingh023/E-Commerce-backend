@@ -1,6 +1,6 @@
 const Order = require('../models/orders');
 const Product = require('../models/product');
-
+const generateUniqueOrderId = require('../utils/genrateOrderID');``
 const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find();
@@ -31,40 +31,47 @@ const searchOrdersByUsername = async (req, res) => {
 
 
 const placeOrder = async (req, res) => {
-  try {
-    const {
-      orderItems,
-      shippingAddress,
-      paymentMethod
-    } = req.body;
+  let orderId = await generateUniqueOrderId();
 
-    // 1. Validate input
+  try {
+    const { orderItems, shippingInfo, paymentMethod, totalCost } = req.body;
+    console.log("Order items:", orderItems);
+
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ message: 'No order items' });
     }
 
-    if (!shippingAddress || !paymentMethod) {
-      return res.status(400).json({ message: 'Shipping address and payment method are required' });
+    if (!shippingInfo || !paymentMethod) {
+      return res.status(400).json({ message: 'Missing shipping info or payment method' });
     }
 
 
+    const finalItems = [];
+
     for (const item of orderItems) {
-      const product = await Product.findById(item.product);
+      const product = await Product.findById(item.id);
       if (!product) {
         return res.status(404).json({ message: `Product not found: ${item.product}` });
       }
-      totalPrice += product.price * item.qty;
+
+      
+
+      finalItems.push({
+        product: product._id,
+        qty: item.quantity,
+        price: product.price
+      });
     }
 
-    // 3. Create order
     const order = new Order({
-      user: req.user.userId,
-      orderItems,
-      shippingAddress,
+      orderId,
+      user: req.user,
+      orderItems: finalItems,
+      shippingInfo,
       paymentMethod,
-      totalPrice,
-      isPaid: paymentMethod === 'COD' ? false : true, // Assume COD not paid, others paid
-      paidAt: paymentMethod === 'COD' ? null : new Date()
+      totalPrice:totalCost,
+      isPaid: paymentMethod !== 'COD',
+      paidAt: paymentMethod !== 'COD' ? new Date() : null
     });
 
     const savedOrder = await order.save();
@@ -79,5 +86,7 @@ const placeOrder = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
 
 module.exports = { getAllOrders, searchOrdersByUsername, placeOrder };

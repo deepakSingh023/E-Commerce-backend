@@ -3,27 +3,28 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema({
   orderId: {
     type: String,
-    required: true
+    required: true,
+    unique: true,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // 🔐 Link to buyer
+    ref: 'User',
     required: true
   },
   orderItems: [
     {
-      firstname: { type: String, required: true },
-      lastname: { type: String, required: true },
-      qty: { type: Number, required: true },
-      price: { type: Number, required: true },
       product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
         required: true
-      }
+      },
+      qty: { type: Number, required: true },
+     
     }
   ],
-  shippingAddress: {
+  shippingInfo: {
+    firstname: { type: String, required: true },
+    lastname: { type: String, required: true },
     address: { type: String, required: true },
     city: { type: String, required: true },
     zip: { type: String, required: true },
@@ -51,7 +52,7 @@ const orderSchema = new mongoose.Schema({
   paidAt: Date,
   deliveredAt: Date
 }, {
-  timestamps: true // adds createdAt and updatedAt automatically
+  timestamps: true
 });
 
 module.exports = mongoose.model('Order', orderSchema);

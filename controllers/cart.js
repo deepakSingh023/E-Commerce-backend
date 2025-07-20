@@ -14,8 +14,6 @@ const getCartItems = async (req, res) => {
       return res.json([]); // return empty array if user has no cart yet
     }
 
-    console.log("Cart items:", cart.items);
-
     res.json(cart.items); // send back only the array of items
   } catch (error) {
     console.error("Get cart error:", error);
