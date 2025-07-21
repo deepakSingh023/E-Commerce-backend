@@ -115,6 +115,46 @@ const addReview = async (req, res) => {
   }
 };
 
+const getFeaturedProducts = async (req, res) => {
+  try {
+    const userId = req.user._id; // or use req.user.id if using auth middleware
+
+    if (!userId) {
+      return res.status(400).json({ message: 'Missing userId' });
+    }
+
+    // Step 1: Get latest 5 featured products
+    const products = await Product.find({ featuredAt: true })
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .lean(); // lean() to get plain JS objects, not Mongoose docs
+
+    const productIds = products.map((p) => p._id);
+
+    // Step 2: Get favorite product IDs for this user
+    const favorites = await favourite.find({
+      user: userId,
+      product: { $in: productIds }
+    }).select('product');
+
+    const favoriteProductIds = new Set(favorites.map((f) => f.product.toString()));
+
+    // Step 3: Attach `isFavorite` flag to each product
+    const productsWithFavorites = products.map((product) => ({
+      ...product,
+      isFavorite: favoriteProductIds.has(product._id.toString())
+    }));
+
+    // Response
+    res.status(200).json(productsWithFavorites);
+
+  } catch (error) {
+    console.error("Error in getFeaturedProducts:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 
 
 
@@ -122,7 +162,8 @@ module.exports = {
     getAllProducts,
     getProductsPage,
     getProductbyId, 
-    addReview
+    addReview, 
+    getFeaturedProducts
 };
 
 
