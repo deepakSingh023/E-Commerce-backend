@@ -41,6 +41,7 @@ const removeFavourite= async (req, res) => {
 
   try {
     const favorite = await Favorite.findOneAndDelete({ user: userId, product: productId });
+    console.log("🟡 Favorite deleted:", favorite);
 
 
     if (!favorite) {
@@ -56,11 +57,9 @@ const removeFavourite= async (req, res) => {
 
 const getAllFavourite= async (req, res) => {
    const user = req.user; 
-   const userId = new mongoose.Types.ObjectId(req.user._id);
-   console.log("🔵 User ID from token/middleware:", user._id);
-
   try {
     const favorites = await Favorite.find({ user: user._id }).populate('product');
+    
     res.json(favorites);
     
   } catch (error) {
@@ -68,12 +67,33 @@ const getAllFavourite= async (req, res) => {
   }
   };
 
+const checkWishlist = async (req, res) => {
+  const userId = req.user._id;
+  const { productId } = req.query;
+
+  try {
+    const wishlistEntry = await Favorite.findOne({
+      user: userId,
+      product: productId,
+    });
+
+    const isWishlisted = !!wishlistEntry; // true if found
+
+    res.status(200).json({ isWishlisted });
+  } catch (err) {
+    console.error("Error checking wishlist:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
 
 
   module.exports={
     createFavorite,
     removeFavourite,
-    getAllFavourite
+    getAllFavourite, 
+    checkWishlist
   }
 

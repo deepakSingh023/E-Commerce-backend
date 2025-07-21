@@ -10,6 +10,77 @@ const getAllOrders = async (req, res) => {
     }
 };
 
+const getOrderById = async (req, res) => {
+  try {
+    const { search, status } = req.query;
+    const user = req.user;
+
+    const orders = await Order.find({ user: user._id });
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: "No orders found" });
+    }
+
+    // Filtered orders
+    let filteredOrders = orders;
+
+    if (search || status) {
+      const searchLower = search?.toLowerCase() || "";
+      const categoryLower = status?.toLowerCase() || "";
+
+      filteredOrders = orders.filter((order) => {
+        const matchesSearch = search
+          ? (
+              order.orderId.toString().toLowerCase().includes(searchLower) || // orderId match
+              order.username?.toLowerCase().includes(searchLower)
+            )
+          : true;
+
+        const matchesStatus = status
+          ? order.status?.toLowerCase().includes(categoryLower)
+          : true;
+
+        return matchesSearch && matchesStatus;
+      });
+    }
+    const counts = {
+      all: filteredOrders.length,
+      pending: filteredOrders.filter(order => order.status === "Pending").length,
+      processing: filteredOrders.filter(order => order.status === "Processing").length,
+      shipped: filteredOrders.filter(order => order.status === "Shipped").length,
+      delivered: filteredOrders.filter(order => order.status === "Delivered").length,
+      cancelled: filteredOrders.filter(order => order.status === "Cancelled").length,
+    };
+
+    // Format to match frontend interface
+    const formattedOrders = filteredOrders.map((order) => ({
+      id: order._id,
+      orderId: order.orderId,
+      date: order.createdAt.toISOString(), // or format to "YYYY-MM-DD"
+      status: order.status,
+      total: order.totalPrice,
+      items: order.orderItems.map((item) => ({
+        name: item.name,
+        quantity: item.qty,
+        price: item.price,
+        image: item.image,
+      })),
+      trackingNumber: order.trackingNumber || undefined,
+      estimatedDelivery: order.estimatedDelivery || undefined,
+    }));
+    console.log("Formatted orders:", formattedOrders);
+
+    res.status(200).json({
+      orders: formattedOrders,
+      counts
+    });
+  } catch (error) {
+    console.error("Get Order Error:", error);
+    res.status(500).json({ message: "Server error fetching orders" });
+  }
+};
+
+
 const searchOrdersByUsername = async (req, res) => {
   const search = (req.query.q || "").trim()
 
@@ -58,8 +129,11 @@ const placeOrder = async (req, res) => {
 
       finalItems.push({
         product: product._id,
+        name: product.name,
         qty: item.quantity,
-        price: product.price
+        price: product.price, 
+        image: product.images[0]?.url || ""
+
       });
     }
 
@@ -89,4 +163,4 @@ const placeOrder = async (req, res) => {
 
 
 
-module.exports = { getAllOrders, searchOrdersByUsername, placeOrder };
+module.exports = { getAllOrders, searchOrdersByUsername, placeOrder, getOrderById };

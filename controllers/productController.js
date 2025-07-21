@@ -74,7 +74,17 @@ const getProductsPage = async (req, res) => {
   }
 };
 
-
+const getProductbyId = async (req, res) => {
+  console.log("Product details route hit with ID:", req.params.id);
+    const productId = req.params.id;
+  try {
+    const product = await Product.findById(productId);
+    res.status(200).json(product);
+    console.log(product);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 
 
@@ -82,6 +92,7 @@ const getProductsPage = async (req, res) => {
 module.exports = {
     getAllProducts,
     getProductsPage,
+    getProductbyId
 };
 
 
