@@ -80,9 +80,38 @@ const getProductbyId = async (req, res) => {
   try {
     const product = await Product.findById(productId);
     res.status(200).json(product);
-    console.log(product);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+
+const addReview = async (req, res) => {
+  const { productId, comment } = req.body;
+  const userId = req.user._id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    const newReview = {
+      user: userId,
+      username: user.username,
+      comment,
+      createdAt: new Date().toISOString()
+    };
+
+    product.reviews.push(newReview);
+    await product.save();
+
+    // ✅ Return the actual review object added
+    res.status(200).json(newReview);
+  } catch (error) {
+    console.error("Add review error:", error.message);
+    res.status(500).json({ message: 'Server error', error });
   }
 };
 
@@ -92,7 +121,8 @@ const getProductbyId = async (req, res) => {
 module.exports = {
     getAllProducts,
     getProductsPage,
-    getProductbyId
+    getProductbyId, 
+    addReview
 };
 
 

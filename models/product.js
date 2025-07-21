@@ -44,6 +44,10 @@ const productSchema = new mongoose.Schema({
       ref: 'User',
       required: true
     },
+    username: {
+      type: String,
+      required: true
+    },
     comment: {
       type: String,
       required: true
