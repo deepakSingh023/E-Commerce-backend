@@ -104,61 +104,142 @@ const searchOrdersByUsername = async (req, res) => {
 
 const placeOrder = async (req, res) => {
   let orderId = await generateUniqueOrderId();
-
+  
   try {
-    const { orderItems, shippingInfo, paymentMethod, totalCost } = req.body;
+    const { orderItems, shippingInfo, paymentMethod, totalCost, userInfo } = req.body;
+    
     console.log("Order items:", orderItems);
-
+    console.log("User info:", userInfo);
+    
+    // Validation
     if (!orderItems || orderItems.length === 0) {
-      return res.status(400).json({ message: 'No order items' });
+      return res.status(400).json({ message: 'No order items provided' });
     }
-
+    
     if (!shippingInfo || !paymentMethod) {
       return res.status(400).json({ message: 'Missing shipping info or payment method' });
     }
-
-
+    
+    if (!userInfo || !userInfo.email) {
+      return res.status(400).json({ message: 'User email is required' });
+    }
+    
+    if (!totalCost || totalCost <= 0) {
+      return res.status(400).json({ message: 'Invalid total cost' });
+    }
+    
     const finalItems = [];
-
+    
+    // Process each order item
     for (const item of orderItems) {
+      // Backend expects 'id' field (fixed from looking for 'product')
+      if (!item.id) {
+        return res.status(400).json({ message: 'Product ID is required for each item' });
+      }
+      
       const product = await Product.findById(item.id);
       if (!product) {
-        return res.status(404).json({ message: `Product not found: ${item.product}` });
+        return res.status(404).json({ message: `Product not found: ${item.id}` });
       }
-
       
-
+      // Validate quantity
+      if (!item.quantity || item.quantity <= 0) {
+        return res.status(400).json({ message: `Invalid quantity for product: ${product.name}` });
+      }
+      
+      // Check stock availability (optional)
+      if (product.stock !== undefined && product.stock < item.quantity) {
+        return res.status(400).json({ 
+          message: `Insufficient stock for product: ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}` 
+        });
+      }
+      
       finalItems.push({
         product: product._id,
         name: product.name,
         qty: item.quantity,
-        price: product.price, 
-        image: product.images[0]?.url || ""
-
+        price: product.price,
+        image: product.images[0]?.url || "",
+        size: item.size || null  // Include size if provided
       });
     }
-
+    
+    // Verify total cost matches calculated total
+    const calculatedTotal = finalItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    if (Math.abs(calculatedTotal - totalCost) > 0.01) { // Allow for small rounding differences
+      return res.status(400).json({ 
+        message: `Total cost mismatch. Calculated: ${calculatedTotal}, Provided: ${totalCost}` 
+      });
+    }
+    
+    // Create the order
     const order = new Order({
       orderId,
-      user: req.user,
+      user: req.user, // Assuming user is attached to req from auth middleware
       orderItems: finalItems,
-      shippingInfo,
+      shippingInfo: {
+        firstname: shippingInfo.firstname,
+        lastname: shippingInfo.lastname,
+        address: shippingInfo.address,
+        city: shippingInfo.city,
+        zip: shippingInfo.zip,
+        state: shippingInfo.state,
+        phone: shippingInfo.phone
+      },
       paymentMethod,
-      totalPrice:totalCost,
+      totalPrice: totalCost,
       isPaid: paymentMethod !== 'COD',
-      paidAt: paymentMethod !== 'COD' ? new Date() : null
+      paidAt: paymentMethod !== 'COD' ? new Date() : null,
+      // Store user email
+      userEmail: userInfo.email
     });
-
+    
     const savedOrder = await order.save();
-
+    
+    // Optionally update product stock
+    for (const item of finalItems) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { stock: -item.qty } }, // Decrease stock
+        { new: true }
+      );
+    }
+    
+    // Return success response with order details
     res.status(201).json({
+      success: true,
       message: 'Order placed successfully',
-      order: savedOrder
+      order: {
+        _id: savedOrder._id,
+        orderId: savedOrder.orderId,
+        totalPrice: savedOrder.totalPrice,
+        status: savedOrder.status || 'pending',
+        createdAt: savedOrder.createdAt
+      }
     });
-
+    
   } catch (err) {
-    console.error('Order error:', err.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Order placement error:', err);
+    
+    // Handle different types of errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        message: 'Validation error', 
+        errors: errors 
+      });
+    }
+    
+    if (err.name === 'CastError') {
+      return res.status(400).json({ 
+        message: 'Invalid product ID format' 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
   }
 };
 
