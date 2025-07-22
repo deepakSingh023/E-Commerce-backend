@@ -1,5 +1,6 @@
 const Product = require('../models/product')
 const Order = require('../models/orders')
+const favorite = require('../models/favourite')
 const createProduct = async (req, res) => {
   try {
     let {
@@ -67,6 +68,8 @@ const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const deletedProduct = await Product.findByIdAndDelete(id);
+    const favourite = await favorite.deleteMany({ productId: id });
+    
     if (!deletedProduct) {
       return res.status(404).json({ message: 'Product not found' });
     }

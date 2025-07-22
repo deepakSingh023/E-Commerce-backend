@@ -18,6 +18,8 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/fav", require("./routes/favRoutes"));
+app.use("/api/analytics", require("./routes/analyticsRoutes"));
+
 
 
 // Not Found Handler
