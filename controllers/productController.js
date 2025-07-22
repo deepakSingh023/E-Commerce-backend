@@ -117,21 +117,26 @@ const addReview = async (req, res) => {
 
 const getFeaturedProducts = async (req, res) => {
   try {
-    const userId = req.user._id; // or use req.user.id if using auth middleware
+   const userId = req.user?._id; // optional chaining
+ // Assuming you're using some auth middleware to attach this
 
-    if (!userId) {
-      return res.status(400).json({ message: 'Missing userId' });
-    }
-
-    // Step 1: Get latest 5 featured products
+    // Step 1: Get latest 4 featured products
     const products = await Product.find({ featuredAt: true })
       .sort({ createdAt: -1 })
       .limit(4)
-      .lean(); // lean() to get plain JS objects, not Mongoose docs
+      .lean();
 
-    const productIds = products.map((p) => p._id);
+    // If no user, skip favorite logic and just return products with isFavorite = false
+    if (!userId) {
+      const productsWithoutFavorites = products.map((product) => ({
+        ...product,
+        isFavorite: false
+      }));
+      return res.status(200).json(productsWithoutFavorites);
+    }
 
     // Step 2: Get favorite product IDs for this user
+    const productIds = products.map((p) => p._id);
     const favorites = await favourite.find({
       user: userId,
       product: { $in: productIds }
@@ -145,14 +150,14 @@ const getFeaturedProducts = async (req, res) => {
       isFavorite: favoriteProductIds.has(product._id.toString())
     }));
 
-    // Response
     res.status(200).json(productsWithFavorites);
-
+    
   } catch (error) {
     console.error("Error in getFeaturedProducts:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 
