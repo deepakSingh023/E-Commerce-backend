@@ -164,13 +164,7 @@ const placeOrder = async (req, res) => {
       });
     }
     
-    // Verify total cost matches calculated total
-    const calculatedTotal = finalItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    if (Math.abs(calculatedTotal - totalCost) > 0.01) { // Allow for small rounding differences
-      return res.status(400).json({ 
-        message: `Total cost mismatch. Calculated: ${calculatedTotal}, Provided: ${totalCost}` 
-      });
-    }
+    
     
     // Create the order
     const order = new Order({
